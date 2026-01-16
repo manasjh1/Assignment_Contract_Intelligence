@@ -1,0 +1,19 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    # Run every 12 minutes (Render sleeps after 15 mins)
+    - cron: '*/12 * * * *'
+  # This allows you to run it manually from the Actions tab for testing
+  workflow_dispatch:
+
+jobs:
+  ping_server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          # -I means "fetch headers only" (saves bandwidth)
+          # --fail means "report failure if the server gives 404/500 error"
+          curl -I --fail https://assignment-contract-intelligence.onrender.com/healthz
+          echo "✅ Server pinged successfully at $(date)"
