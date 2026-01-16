@@ -147,25 +147,6 @@ MKL_NUM_THREADS=1
 FASTEMBED_CACHE_PATH=/opt/render/project/src/fastembed_cache
 ```
 
-### Keep-Alive Automation
-
-The project includes a GitHub Actions workflow that automatically pings the health endpoint every 14 minutes to prevent serverless containers from idling:
-
-```yaml
-# .github/workflows/keep-alive.yml
-name: Keep Alive
-on:
-  schedule:
-    - cron: '*/14 * * * *'  # Every 14 minutes
-  workflow_dispatch:
-jobs:
-  keep-alive:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Ping API
-        run: curl -f ${{ secrets.API_URL }}/healthz
-```
-
 ## Performance Metrics
 
 - **Memory Usage**: <512MB RAM (Free Tier Compatible)
