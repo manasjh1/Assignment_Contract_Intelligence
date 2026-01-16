@@ -3,6 +3,7 @@ import os
 import logging
 import asyncio
 import httpx
+import gc
 from typing import List
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
@@ -39,6 +40,7 @@ async def send_webhook_notification(url: str, payload: dict):
         except Exception as e:
             logger.error(f"Webhook failed: {e}")
 
+# --- 1. Ingest Endpoint ---
 @router.post("/ingest")
 async def ingest_pdfs(files: List[UploadFile] = File(...)):
     processed_files = []
@@ -53,10 +55,12 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
             
             logger.info(f"Processing file: {file.filename}")
             
+            # Open PDF
             doc = fitz.open(temp_filename)
             total_pages = len(doc)
             
-            BATCH_SIZE = 10
+            
+            BATCH_SIZE = 5
             batch_text = ""
             
             for i, page in enumerate(doc):
@@ -67,11 +71,20 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
                     logger.info(f"Uploading batch: Pages {i-BATCH_SIZE+2} to {i+1}")
                     
                     if batch_text.strip():
+                        # Create chunks
                         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
                         chunks = splitter.create_documents([batch_text], metadatas=[{"source": file.filename}])
+                        
+                        # Upload to Pinecone
                         vs.add_documents(chunks)
+                        
+                        del chunks
+                        del splitter
                     
-                    batch_text = "" # FREE MEMORY
+                    batch_text = ""  # Reset text buffer
+                    gc.collect()     # Force RAM cleanup immediately
+                    
+                    await asyncio.sleep(0.2)
             
             doc.close()
             
@@ -80,6 +93,9 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
             
             processed_files.append(file.filename)
             METRICS["documents_ingested"] += 1
+            
+            # Final cleanup
+            gc.collect()
 
         return {"status": "success", "processed_files": processed_files}
 
@@ -91,6 +107,7 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
         logger.error(f"Ingest failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- 2. Extract Endpoint ---
 @router.post("/extract", response_model=ExtractResponse)
 async def extract_metadata(document_id: str):
     try:
@@ -111,6 +128,7 @@ async def extract_metadata(document_id: str):
         METRICS["errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- 3. Ask Endpoint ---
 @router.post("/ask")
 async def ask_question(req: AskRequest):
     METRICS["questions_asked"] += 1
@@ -134,6 +152,7 @@ async def ask_question(req: AskRequest):
         METRICS["errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- 4. Stream Endpoint ---
 @router.get("/ask/stream")
 async def stream_question(question: str):
     try:
@@ -157,6 +176,7 @@ async def stream_question(question: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- 5. Audit Endpoint ---
 @router.post("/audit", response_model=AuditResponse)
 async def audit_contract(document_id: str):
     METRICS["risks_audited"] += 1
@@ -175,12 +195,14 @@ async def audit_contract(document_id: str):
         METRICS["errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- 6. Webhook Endpoint ---
 @router.post("/webhook/events")
 async def trigger_webhook_event(req: WebhookRequest, background_tasks: BackgroundTasks):
     METRICS["webhooks_triggered"] += 1
     background_tasks.add_task(send_webhook_notification, req.callback_url, {"task": req.task_type})
     return {"status": "processing_started"}
 
+# --- 7. Metrics Endpoint ---
 @router.get("/metrics")
 def get_metrics():
     return METRICS
