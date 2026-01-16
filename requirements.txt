@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+pydantic-settings
+langchain-groq
+langchain-pinecone
+langchain-huggingface
+sentence-transformers
+pinecone-client
+pymupdf
+python-dotenv
+httpx
+pytest
+langchain
+langchain-community
