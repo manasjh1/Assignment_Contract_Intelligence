@@ -3,7 +3,7 @@ import os
 import logging
 import asyncio
 import httpx
-import gc
+import gc  
 from typing import List
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
@@ -34,13 +34,17 @@ METRICS = {
 
 async def send_webhook_notification(url: str, payload: dict):
     await asyncio.sleep(5)
+    
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+
     async with httpx.AsyncClient() as client:
         try:
             await client.post(url, json={"status": "completed", "data": payload}, timeout=10.0)
         except Exception as e:
             logger.error(f"Webhook failed: {e}")
 
-# --- 1. Ingest Endpoint ---
+# --- 1. Ingest Endpoint (RAM Optimized) ---
 @router.post("/ingest")
 async def ingest_pdfs(files: List[UploadFile] = File(...)):
     processed_files = []
@@ -55,10 +59,8 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
             
             logger.info(f"Processing file: {file.filename}")
             
-            # Open PDF
             doc = fitz.open(temp_filename)
             total_pages = len(doc)
-            
             
             BATCH_SIZE = 5
             batch_text = ""
@@ -81,8 +83,8 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
                         del chunks
                         del splitter
                     
-                    batch_text = ""  # Reset text buffer
-                    gc.collect()     # Force RAM cleanup immediately
+                    batch_text = ""  
+                    gc.collect()     
                     
                     await asyncio.sleep(0.2)
             
