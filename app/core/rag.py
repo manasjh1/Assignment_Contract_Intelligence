@@ -1,7 +1,7 @@
 import logging
 from pinecone import Pinecone, ServerlessSpec
 from langchain_groq import ChatGroq
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from app.core.config import settings
 
@@ -26,10 +26,10 @@ try:
         logger.info(f"Index '{settings.PINECONE_INDEX}' created successfully.")
     else:
         logger.info(f"Found existing index: '{settings.PINECONE_INDEX}'")
-
+        
     # 2. Setup Embeddings
-    logger.info(f"Loading embedding model: {settings.EMBEDDING_MODEL}")
-    embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDING_MODEL)
+    logger.info(f"Loading FastEmbed model: {settings.EMBEDDING_MODEL}")
+    embeddings = FastEmbedEmbeddings(model_name=settings.EMBEDDING_MODEL)
 
     # 3. Setup Vector Store
     logger.info("Initializing VectorStore...")
