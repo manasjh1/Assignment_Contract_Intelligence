@@ -131,28 +131,6 @@ Visit [https://assignment-contract-intelligence.onrender.com/docs](https://assig
 | `POST` | `/extract` | Structured JSON extraction of metadata |
 | `GET` | `/healthz` | Health check probe for keep-alive bots |
 
-### Example Usage
-
-#### Upload a Contract
-```bash
-curl -X POST "http://localhost:8000/ingest" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@contract.pdf"
-```
-
-#### Ask Questions
-```bash
-curl -X POST "http://localhost:8000/ask" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is the termination clause?"}'
-```
-
-#### Audit Contract
-```bash
-curl -X POST "http://localhost:8000/audit" \
-  -H "Content-Type: application/json" \
-  -d '{"contract_id": "contract_123"}'
-```
 
 ## Deployment
 
@@ -232,22 +210,18 @@ BACKEND-CONTRACT-API/
 ├── .env                      # Environment variables
 ├── .gitignore               # Git ignore rules
 ├── app/
-│   └── __pycache__/         # Compiled Python files
 ├── api/                     # API layer
 │   ├── __init__.py
 │   ├── dependencies.py      # Dependency injection
 │   └── endpoints.py         # API route definitions
 ├── core/                    # Core business logic
-│   ├── __pycache__/
 │   ├── config.py           # Configuration management
 │   ├── prompts.py          # LLM prompt templates
 │   └── rag.py              # RAG implementation
 ├── schemas/                 # Pydantic models
-│   ├── __pycache__/
 │   ├── __init__.py
 │   └── models.py           # Data models and validation
 └── tests/                   # Test suite
-    ├── __pycache__/
     ├── test_api.py         # API endpoint tests
     ├── test_endpoints.py   # Endpoint-specific tests
     └── test_stream.py      # Streaming functionality tests
@@ -270,30 +244,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Manas Jha**  
 Backend Engineer | AI Systems
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue.svg)](https://linkedin.com/in/your-profile)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-black.svg)](https://github.com/your-username)
-
 ---
 
-**Star this repository if you found it helpful!**
 
-## Roadmap
-
-- [ ] Multi-language contract support
-- [ ] Advanced risk scoring algorithms
-- [ ] Real-time collaborative editing
-- [ ] Integration with legal databases
-- [ ] Mobile app companion
-- [ ] Enterprise SSO integration
-
-## Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/your-username/BACKEND-CONTRACT-API/issues) page
-2. Create a new issue with detailed description
-3. Contact: [your-email@example.com](mailto:your-email@example.com)
-
----
 
 **Built with dedication for the legal tech community**
