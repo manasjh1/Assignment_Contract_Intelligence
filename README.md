@@ -84,7 +84,7 @@ To deploy this ML-heavy application on a **Free Tier (512MB RAM)** instance, spe
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12
 - Pinecone API Key
 - Groq API Key
 
@@ -118,7 +118,7 @@ EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 uvicorn main:app --reload --port 8000
 ```
 
-Visit [http://localhost:8000/docs](http://localhost:8000/docs) to interact with the API Swagger UI.
+Visit [https://assignment-contract-intelligence.onrender.com/docs](https://assignment-contract-intelligence.onrender.com/docs) to interact with the API Swagger UI.
 
 ## API Endpoints
 
