@@ -9,7 +9,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.messages import SystemMessage, HumanMessage
-import fitz  
+import fitz 
 from app.core.rag import get_vectorstore, get_llm
 from app.core.prompts import AUDIT_PROMPT
 from app.schemas.models import (
@@ -79,7 +79,7 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
                         
                         # Upload to Pinecone
                         vs.add_documents(chunks)
-                        
+                
                         del chunks
                         del splitter
                     
