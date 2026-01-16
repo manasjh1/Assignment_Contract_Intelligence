@@ -2,9 +2,8 @@ name: Keep Render Awake
 
 on:
   schedule:
-    # Run every 14 minutes (Render sleeps after 15 mins)
+    # Run every 12 minutes
     - cron: '*/12 * * * *'
-  # This allows you to run it manually from the Actions tab for testing
   workflow_dispatch:
 
 jobs:
@@ -13,7 +12,8 @@ jobs:
     steps:
       - name: Ping Health Endpoint
         run: |
-          # -I means "fetch headers only" (saves bandwidth)
-          # --fail means "report failure if the server gives 404/500 error"
-          curl -I --fail https://assignment-contract-intelligence.onrender.com/healthz
+          # 1. Removed '-I' (which caused the 405 error)
+          # 2. Added '-s' (silent mode)
+          # 3. Added '> /dev/null' (hide the output)
+          curl -f -s https://assignment-contract-intelligence.onrender.com/healthz > /dev/null
           echo "Server pinged successfully at $(date)"
