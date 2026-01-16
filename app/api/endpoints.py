@@ -42,8 +42,8 @@ async def send_webhook_notification(url: str, payload: dict):
 @router.post("/ingest")
 async def ingest_pdfs(files: List[UploadFile] = File(...)):
     processed_files = []
+    
     try:
-        
         vs = get_vectorstore()
 
         for file in files:
@@ -51,23 +51,44 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
             with open(temp_filename, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
             
+            logger.info(f"Processing file: {file.filename}")
+            
             doc = fitz.open(temp_filename)
-            text = "".join([page.get_text() for page in doc])
+            total_pages = len(doc)
+            
+            BATCH_SIZE = 10
+            batch_text = ""
+            
+            for i, page in enumerate(doc):
+                batch_text += page.get_text() + "\n"
+                
+                # If batch is full OR last page
+                if (i + 1) % BATCH_SIZE == 0 or (i + 1) == total_pages:
+                    logger.info(f"Uploading batch: Pages {i-BATCH_SIZE+2} to {i+1}")
+                    
+                    if batch_text.strip():
+                        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+                        chunks = splitter.create_documents([batch_text], metadatas=[{"source": file.filename}])
+                        vs.add_documents(chunks)
+                    
+                    batch_text = "" # FREE MEMORY
+            
             doc.close()
             
-            splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-            chunks = splitter.create_documents([text], metadatas=[{"source": file.filename}])
-            
-            vs.add_documents(chunks)
-            
-            METRICS["documents_ingested"] += 1
-            processed_files.append(file.filename)
             if os.path.exists(temp_filename):
                 os.remove(temp_filename)
+            
+            processed_files.append(file.filename)
+            METRICS["documents_ingested"] += 1
 
         return {"status": "success", "processed_files": processed_files}
+
     except Exception as e:
         METRICS["errors"] += 1
+        # Cleanup
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
+        logger.error(f"Ingest failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/extract", response_model=ExtractResponse)
