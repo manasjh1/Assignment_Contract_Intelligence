@@ -9,7 +9,7 @@ from app.api.endpoints import router
 async def lifespan(app: FastAPI):
     yield
 
-app = FastAPI(title="Contract Intelligence API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Ask-the-docs", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
