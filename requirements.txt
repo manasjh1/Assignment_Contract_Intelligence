@@ -11,3 +11,5 @@ pymupdf
 python-dotenv
 httpx
 fastembed
+streamlit
+requests
