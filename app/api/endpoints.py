@@ -45,7 +45,7 @@ async def send_webhook_notification(url: str, payload: dict):
             logger.error(f"Webhook failed: {e}")
 
 # --- 1. Ingest Endpoint (RAM Optimized) ---
-@router.post("/ingest")
+@router.post("/Upload")
 async def ingest_pdfs(files: List[UploadFile] = File(...)):
     processed_files = []
     
@@ -109,27 +109,6 @@ async def ingest_pdfs(files: List[UploadFile] = File(...)):
         logger.error(f"Ingest failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 2. Extract Endpoint ---
-@router.post("/extract", response_model=ExtractResponse)
-async def extract_metadata(document_id: str):
-    try:
-        vs = get_vectorstore()
-        llm = get_llm()
-
-        retriever = vs.as_retriever(search_kwargs={"k": 10, "filter": {"source": document_id}})
-        docs = retriever.invoke("Extract contract parties, dates, liability, and terms.")
-        
-        if not docs:
-            raise HTTPException(status_code=404, detail="Document not found")
-
-        context = "\n\n".join([d.page_content for d in docs])
-        structured_llm = llm.with_structured_output(ExtractResponse)
-        return await structured_llm.ainvoke(f"Extract fields from:\n{context}")
-
-    except Exception as e:
-        METRICS["errors"] += 1
-        raise HTTPException(status_code=500, detail=str(e))
-
 # --- 3. Ask Endpoint ---
 @router.post("/ask")
 async def ask_question(req: AskRequest):
@@ -154,57 +133,4 @@ async def ask_question(req: AskRequest):
         METRICS["errors"] += 1
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 4. Stream Endpoint ---
-@router.get("/ask/stream")
-async def stream_question(question: str):
-    try:
-        vs = get_vectorstore()
-        llm = get_llm()
 
-        docs = vs.similarity_search(question, k=4)
-        context = "\n\n".join([d.page_content for d in docs])
-        
-        async def event_generator():
-            messages = [
-                SystemMessage(content=f"Answer based on:\n{context}"),
-                HumanMessage(content=question)
-            ]
-            async for chunk in llm.astream(messages):
-                if chunk.content:
-                    yield f"data: {chunk.content}\n\n"
-            yield "data: [DONE]\n\n"
-
-        return StreamingResponse(event_generator(), media_type="text/event-stream")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# --- 5. Audit Endpoint ---
-@router.post("/audit", response_model=AuditResponse)
-async def audit_contract(document_id: str):
-    METRICS["risks_audited"] += 1
-    try:
-        vs = get_vectorstore()
-        llm = get_llm()
-
-        retriever = vs.as_retriever(search_kwargs={"k": 15, "filter": {"source": document_id}})
-        docs = retriever.invoke("termination indemnity liability auto-renewal")
-        context = "\n\n".join([d.page_content for d in docs])
-        
-        structured_llm = llm.with_structured_output(AuditResponse)
-        return await structured_llm.ainvoke(AUDIT_PROMPT.format(context=context))
-
-    except Exception as e:
-        METRICS["errors"] += 1
-        raise HTTPException(status_code=500, detail=str(e))
-
-# --- 6. Webhook Endpoint ---
-@router.post("/webhook/events")
-async def trigger_webhook_event(req: WebhookRequest, background_tasks: BackgroundTasks):
-    METRICS["webhooks_triggered"] += 1
-    background_tasks.add_task(send_webhook_notification, req.callback_url, {"task": req.task_type})
-    return {"status": "processing_started"}
-
-# --- 7. Metrics Endpoint ---
-@router.get("/metrics")
-def get_metrics():
-    return METRICS
